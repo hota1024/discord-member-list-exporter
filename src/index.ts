@@ -1,7 +1,8 @@
-import { QuroBot, CommandFileLoader } from 'quro'
+import { QuroBot, CommandFileLoader, Guild } from 'quro'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
 import { version } from '../package.json'
+import { SpreadsheetMemberList } from './classes/MemberList'
 
 dotenv.config()
 
@@ -15,6 +16,11 @@ class Bot extends QuroBot {
    */
   async setup() {
     await this.registerDirectoryCommands('./commands')
+
+    this.onGuildMemberAdd((member) => this.updateMembers(member.guild))
+    this.onGuildMemberRemove((member) => this.updateMembers(member.guild))
+
+    this.onReady(() => console.log('Ready'))
   }
 
   /**
@@ -27,6 +33,20 @@ class Bot extends QuroBot {
     this.registerCommands(
       await commandLoader.load(path.resolve(__dirname, directoryPath))
     )
+  }
+
+  /**
+   * Update member list.
+   *
+   * @param guild Guild object.
+   */
+  private async updateMembers(guild: Guild) {
+    const memberList = new SpreadsheetMemberList(
+      process.env.SHEET_API_KEY,
+      process.env.SHEET_ID,
+      process.env.SHEET_RANGE
+    )
+    memberList.update(guild)
   }
 }
 
